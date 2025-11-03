@@ -1,0 +1,62 @@
+groups:
+  - name: patroni-cluster-alerts
+    rules:
+      # Primary availability
+      - alert: PatroniPrimaryDown
+        expr: up{job="patroni", role="primary"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Primary node down"
+          description: "Primary Patroni instance has been unavailable for more than 1 minute."
+
+      # Replica unavailability
+      - alert: PatroniReplicaDown
+        expr: up{job="patroni", role="replica"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Replica node down"
+          description: "A Patroni replica has been unreachable for over a minute."
+
+      # Cluster not healthy
+      - alert: PatroniClusterUnhealthy
+        expr: patroni_cluster_unhealthy > 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Patroni cluster unhealthy"
+          description: "The cluster reports an unhealthy status via Patroni metrics."
+
+      # Replication lag
+      - alert: PatroniReplicationLagHigh
+        expr: (pg_replication_lag_bytes > 10485760)  # 10MB lag
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Replication lag high"
+          description: "Replica lag exceeds 10MB."
+
+      # Failover event detection (timeline change)
+      - alert: PatroniTimelineChanged
+        expr: changes(patroni_timeline_id[10m]) > 0
+        for: 0m
+        labels:
+          severity: info
+        annotations:
+          summary: "Timeline changed"
+          description: "Detected a cluster failover or promotion event."
+
+      # Patroni process liveness
+      - alert: PatroniProcessDown
+        expr: up{job="patroni"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Patroni process not responding"
+          description: "Prometheus cannot reach Patroni metrics endpoint."
